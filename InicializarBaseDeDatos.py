@@ -11,7 +11,7 @@ cursorBD.execute(''' DROP TABLE centros  ''')
 cursorBD.execute(''' DROP TABLE asignaturas  ''')
 cursorBD.execute(''' DROP TABLE grados  ''')
 cursorBD.execute(''' DROP TABLE convenios  ''')
-cursorBD.execute(''' DROP TABLE login  ''')
+cursorBD.execute(''' DROP TABLE usuarios  ''')
 cursorBD.execute(''' DROP TABLE equivalenciasAsignaturas  ''')
 cursorBD.execute(''' DROP TABLE inscripciones  ''')
 
@@ -65,7 +65,7 @@ cursorBD.execute('''CREATE TABLE IF NOT EXISTS equivalenciasAsignaturas(
                  FOREIGN KEY (idAsignaturaDestino) REFERENCES asignaturas(idAsignatura)) ''')
 
 #Se crea la tabla de los usuarios del programa SI NO EXISTE
-cursorBD.execute(''' CREATE TABLE IF NOT EXISTS login(
+cursorBD.execute(''' CREATE TABLE IF NOT EXISTS usuarios(
                  idUser INTEGER PRIMARY KEY AUTOINCREMENT,
                  usuario TEXT UNIQUE NOT NULL,
                  contrasena TEXT NOT NULL,
@@ -80,19 +80,19 @@ cursorBD.execute(''' CREATE TABLE IF NOT EXISTS inscripciones(
                  idUser INTEGER,
                  idConvenio INTEGER,
                  estado TEXT NOT NULL CHECK(estado IN ('Activa', 'Anulada')),
-                 FOREIGN KEY (idUser) REFERENCES login(idUser),
+                 FOREIGN KEY (idUser) REFERENCES usuarios(idUser),
                  FOREIGN KEY (idConvenio) REFERENCES convenios(idConvenio)) ''')
 
 #Para introducir los usuarios de la UCO
-cursorBD.execute(''' SELECT COUNT(idUser) FROM login''')
+cursorBD.execute(''' SELECT COUNT(idUser) FROM usuarios''')
 resultado = cursorBD.fetchone()
 if resultado[0]==0:
     usuariosPredefinidos = [
-        ('1', '1', 'Administrador', 0, 0),
-        ('2', '2', 'Alumno', '1', 2) #Grado de Ingeniería Informática de la UCO en 2º curso
-        ('3', '3', 'Profesor', '1') #Grado de Ingeniería Informática
+        ('1', '1', 'Administrador',None,None),
+        ('2', '2', 'Alumno', '1', '2'),
+        ('3', '3', 'Profesor', '1', None) 
     ]
-    cursorBD.executemany(''' INSERT INTO login(usuario, contrasena, rol, idGrado, curso) VALUES (?,?,?,?,?) ''', usuariosPredefinidos)
+    cursorBD.executemany(''' INSERT INTO usuarios(usuario, contrasena, rol, idGrado, curso) VALUES (?,?,?,?,?) ''', usuariosPredefinidos)
 
 #Para introducir las universidades
 cursorBD.execute(''' SELECT COUNT(idUni) FROM universidades''')

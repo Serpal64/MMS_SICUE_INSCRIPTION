@@ -50,7 +50,7 @@ class App(customtkinter.CTk):
             master=self,
             text="Iniciar sesión",
             font=("Segoe UI", 14),
-            command=lambda: verificar_credenciales(self.entrada_usuario.get(), self.entrada_contrasena.get()),
+            command=lambda: verificar_credenciales(self, self.entrada_usuario.get(), self.entrada_contrasena.get()),
             corner_radius=32,
             width=150,
             height=50
@@ -67,7 +67,7 @@ class App(customtkinter.CTk):
         self.menubar = CTkMenuBar(master=self)
         self.Inicio = CustomDropdownMenu(widget=self.menubar.add_cascade("Inicio"))
         self.Ayuda = CustomDropdownMenu(widget=self.menubar.add_cascade("Ayuda"))
-        self.Inicio.add_option(option="Administrador", command=lambda: espacio_admin(self))
+        self.Inicio.add_option(option="Administrador", command=None)
         self.Inicio.add_option(option="Estudiante", command=lambda: espacio_alumno(self))
         self.Inicio.add_option(option="Profesor")
         

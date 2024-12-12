@@ -3,6 +3,8 @@ import tkinter as tk
 from tkinter import messagebox
 import customtkinter
 import webbrowser
+import sqlite3
+
 
 # Esta es la ventana que se abre para los estudiantes
 class EspacioEstudiante(customtkinter.CTkToplevel):
@@ -161,24 +163,39 @@ class EspacioAdmin(customtkinter.CTkToplevel):
 
 
 
-def verificar_credenciales(usuario, contraseña):
-
-    # Acceso del admin
-    if usuario == "admin" and contraseña == "1234":
-        messagebox.showinfo("Acceso permitido", "Inicio de sesión administrador exitoso")
-    # Acceso de los alumnos
-    elif usuario == "Sergio" and contraseña == "Palacios":
-        messagebox.showinfo("Acceso permitido", "Inicio de sesión de estudiante exitoso")
-    elif usuario == "" or contraseña == "":
+def verificar_credenciales(self, usuario, contraseña):
+    if usuario=="" or contraseña=="":
         messagebox.showerror("Acceso denegado", "Por favor, introduce el usuario o contraseña")
     else:
-        messagebox.showerror("Acceso denegado", "Usuario o Contraseña incorrectos")
+        conexion = sqlite3.connect('BaseDeDatos.db')
+        cursorBD = conexion.cursor()
+        cursorBD.execute(' SELECT rol, idGrado, curso, idUser FROM usuarios WHERE usuario=? AND contrasena=? ', (usuario, contraseña))
+        resultado = cursorBD.fetchone()
+        conexion.close()
+
+        if not resultado:
+            messagebox.showerror("Acceso denegado", "Usuario o Contraseña incorrectos")
+        else:
+            if resultado[0]=='Administrador':
+                messagebox.showinfo("Acceso permitido", "Inicio de sesión administrador exitoso")
+                espacio_admin(self)
+            elif resultado[0]=='Alumno':
+                messagebox.showinfo("Acceso permitido", "Inicio de sesión estudiante exitoso")
+                espacio_alumno(self)
+            else: #Espacio profesor
+                messagebox.showinfo("Acceso permitido", "Inicio de sesión administrador exitoso")
+                espacio_alumno(self)
+        
+        
 
 def mostrar_ayuda():
 
     webbrowser.open("https://www.crue.org/sicue/")
 
 def espacio_alumno(parent):
+    print('Hola')
+    if not hasattr(parent, 'toplevel_window'):  # Verifica si el atributo existe
+        parent.toplevel_window = None  # Inicialízalo si no existe
     if parent.toplevel_window is None or not parent.toplevel_window.winfo_exists():
         parent.toplevel_window = EspacioEstudiante(parent)  # Crea una ventana si no está o si está destruida
     else:
