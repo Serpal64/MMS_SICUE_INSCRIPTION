@@ -6,5 +6,5 @@ sys.path.append(str(Path(__file__).parent / "Paquete"))
 from Paquete import *
 
 if __name__ == "__main__":
-    app = App(verificar_credenciales)
+    app = App()
     app.mainloop()
