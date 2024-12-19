@@ -41,7 +41,6 @@ cursorBD.execute(''' CREATE TABLE IF NOT EXISTS asignaturas(
                  nombre TEXT NOT NULL,
                  idGrado INTEGER NOT NULL,
                  curso INT NOT NULL,
-                 cuatrimestre INT CHECK (cuatrimestre IN('1', '2')) NOT NULL,
                  FOREIGN KEY (idGrado) REFERENCES grados(idGrado)) ''')
 
 #Se crea la tabla de convenios SI NO EXISTE
@@ -130,50 +129,6 @@ if resultado[0]==0:
         ('5', 'Grado en Ingeniería Informática del Software', '4'),
     ]
     cursorBD.executemany(''' INSERT INTO grados(idGrado, nombre, idCentro) VALUES (?,?,?) ''', GradosPredefinidos)
-
-#Para introducir las asignaturas
-cursorBD.execute(''' SELECT COUNT(idAsignatura) FROM asignaturas''')
-resultado = cursorBD.fetchone()
-if resultado[0]==0:
-    AsignaturasPredefinidas = [
-        ('1', 'Programación Orientada a Objetos', '1', '2', '1'),
-        ('2', 'Bases de Datos', '1', '2', '1'),
-        ('3', 'Sistemas Operativos', '1', '2', '1'),
-        ('4', 'Ingeniería del Software', '1', '2', '1'),
-        ('5', 'Arquitectura de Computadores', '1', '2', '1'),
-        ('6', 'Programación y Administración de Sistemas', '1', '2', '2'),
-        ('7', 'Estructura de Datos', '1', '2', '2'),
-        ('8', 'Sistemas de Información', '1', '2', '2'),
-        ('9', 'Sistemas Inteligentes', '1', '2', '2'),
-        ('10', 'Arquitectura de Redes', '1', '2', '2'),
-        ('11', 'Metodología de la Programación', '2', '2', '1'),
-        ('12', 'Base de Datos', '2', '2', '1'),
-        ('13', 'Diseño y Estructura de los Sistemas Operativos', '2', '2', '1'),
-        ('14', 'Principios y Fundamentos de la Ingeniería del Software', '2', '2', '1'),
-        ('15', 'Arquitectura de Computadores', '2', '2', '1'),
-        ('16', 'Administración y Programación de Sistemas', '2', '2', '2'),
-        ('17', 'Estructura de Datos II', '2', '2', '2'),
-        ('18', 'Sistemas de Información', '2', '2', '2'),
-        ('19', 'Inteligencia Artificial', '2', '2', '2'),
-        ('20', 'Fundamentos de Redes de Computadores', '2', '2', '2'),
-        ('21', 'Regulación Automática', '3', '3', '1'),
-        ('22', 'Electrónica Industrial', '3', '3', '1'),
-        ('23', 'Control de Máquinas y Accionamientos', '3', '3', '1'),
-        ('24', 'Máquinas Eléctricas', '3', '3', '1'),
-        ('25', 'Cálculo de Máquinas Eléctricas', '3', '3', '1'),
-        ('26', 'Regulación Autonómica', '4', '3', '1'),
-        ('27', 'Instalaciones Eléctricas de Baja Tensión', '4', '3', '1'),
-        ('28', 'Accionamientos Eléctricos y Electrónica de Potencia', '4', '3', '1'),
-        ('29', 'Máquinas Eléctricas II', '4', '3', '1'),
-        ('30', 'Circuitos', '4', '3', '1'),
-        ('31', 'Tecnología y Paradigmas de Programación', '5', '2', '1'),
-        ('32', 'Base de Datos', '5', '2', '1'),
-        ('33', 'Sistemas Operativos', '5', '2', '1'),
-        ('34', 'Computabilidad', '5', '2', '1'),
-        ('35', 'Arquitectura de Computadores', '5', '2', '1')
-
-    ]
-    cursorBD.executemany(''' INSERT INTO asignaturas(idAsignatura, nombre, idGrado, curso, cuatrimestre) VALUES (?,?,?,?,?) ''', AsignaturasPredefinidas)
 
 #Para guardar los cambios realizados en la base de datos
 conexion.commit()
