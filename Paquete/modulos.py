@@ -6,15 +6,30 @@ import sqlite3
 
 # Esta es la ventana que se abre para los estudiantes
 class EspacioEstudiante(customtkinter.CTkToplevel):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.geometry("700x500")
+    def __init__(self, padre):
+        super().__init__(padre)
+        self.geometry("1200x500")
         self.title("Estudiante")
-        self._set_appearance_mode("Dark")
+        customtkinter.set_appearance_mode("Dark")
+        customtkinter.set_default_color_theme("dark-blue")
         self.resizable(False, False)
+        self.app = padre
+
+        # Vector para eliminar widgets
+        self.vector_borrar_widgets = []
+
+        # Obtener idUsuario
+        conexion = sqlite3.connect('BaseDeDatos.db')
+        cursorBD = conexion.cursor()
+
+        cursorBD.execute('SELECT idUser FROM usuarios WHERE usuario=?', (self.app.entrada_usuario.get(),))
+        resultado = cursorBD.fetchone()
+        idUsuario = resultado[0]
+        self.idUsuario = idUsuario
+        conexion.close()
 
         # Mensaje de bienvenida
-        self.bienvenida = customtkinter.CTkLabel(self, text="Hola Alumno!", font=("Segoe UI", 20))
+        self.bienvenida = customtkinter.CTkLabel(self, text="¡Hola "+self.app.entrada_usuario.get()+"!", font=("Segoe UI", 20))
         self.bienvenida.pack(padx=20, pady=20)
         self.bienvenida.place(relx=0.05, rely=0.05)
 
@@ -28,7 +43,6 @@ class EspacioEstudiante(customtkinter.CTkToplevel):
             width=150,
             height=50
         )
-        self.consultar_inscripción.pack(padx=20, pady=20)
         self.consultar_inscripción.place(relx=0.05, rely=0.2)
 
         # Botón para realizar las inscripciones
@@ -36,60 +50,370 @@ class EspacioEstudiante(customtkinter.CTkToplevel):
             master=self,
             text="Inscribirse en un plan",
             font=("Segoe UI", 14),
-            command= lambda: self.inscripción(),
+            command= lambda: self.elegir_plan(),
             corner_radius=32,
             width=150,
             height=50
         )
-        self.inscribirse.pack(padx=20, pady=20)
         self.inscribirse.place(relx=0.4, rely=0.2)
 
-    # Falta implementarlo con la base de datos
+        # Botón para cerrar sesión
+        self.boton_cerrar = customtkinter.CTkButton(
+            master=self,
+            text="Cerrar Sesión",
+            font=("Segoe UI", 14),
+            command=self.volverAtras,
+            corner_radius=32,
+            width=150,
+            height=50,
+        )
+        self.boton_cerrar.place(relx=0.85, rely=0.02)
+
+        # Botón para anular las inscripciones
+        self.anular = customtkinter.CTkButton(
+            master=self,
+            text="Anular inscripción",
+            font=("Segoe UI", 14),
+            command= lambda: self.anular_inscripción(),
+            corner_radius=32,
+            width=150,
+            height=50
+        )
+        self.anular.place(relx=0.75, rely=0.2)
+    
+    def borrar_widgets(self):
+        for widget in self.vector_borrar_widgets:
+            widget.destroy()
+        self.vector_borrar_widgets.clear()
+    
+    def volverAtras(self):
+        self.destroy()
+        self.app.entrada_usuario.delete(0, customtkinter.END)
+        self.app.entrada_contrasena.delete(0, customtkinter.END)
+        self.app.deiconify()
+
     def consultar_inscripciones(self):
 
-        self.texto_consulta = customtkinter.CTkTextbox(self, width=500, height=200, font=("Segoe UI", 14))
+        self.borrar_widgets()
+
+        self.texto_consulta = customtkinter.CTkTextbox(self, width=1000, height=200, font=("Segoe UI", 14))
         self.texto_consulta.pack(pady=10)
         self.texto_consulta.place(relx=0.05, rely=0.4)
+        self.vector_borrar_widgets.append(self.texto_consulta)
 
-        self.texto_consulta.insert("1.0", "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n")
-        self.texto_consulta.insert("2.0", "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
+        conexion = sqlite3.connect('BaseDeDatos.db')
+        cursorBD = conexion.cursor()
+        cursorBD.execute('''SELECT 
+                                        inscripciones.idInscripcion,
+                                        inscripciones.idConvenio,
+                                        grados_origen.nombre AS GradoOrigen,
+                                        centros_origen.nombre AS CentroOrigen,
+                                        grados_destino.nombre AS GradoDestino,
+                                        centros_destino.nombre AS CentroDestino,
+                                        GROUP_CONCAT(asignaturas_origen.nombre, ', ') AS AsignaturasOrigen,
+                                        GROUP_CONCAT(asignaturas_destino.nombre, ', ') AS AsignaturasDestino
+                                    FROM 
+                                        inscripciones
+                                    JOIN 
+                                        convenios ON inscripciones.idConvenio = convenios.idConvenio
+                                    JOIN 
+                                        grados AS grados_origen ON convenios.idGradoOrigen = grados_origen.idGrado
+                                    JOIN 
+                                        centros AS centros_origen ON grados_origen.idCentro = centros_origen.idCentro
+                                    JOIN 
+                                        grados AS grados_destino ON convenios.idGradoDestino = grados_destino.idGrado
+                                    JOIN 
+                                        centros AS centros_destino ON grados_destino.idCentro = centros_destino.idCentro
+                                    LEFT JOIN 
+                                        equivalenciasAsignaturas ON convenios.idConvenio = equivalenciasAsignaturas.idConvenio
+                                    LEFT JOIN 
+                                        asignaturas AS asignaturas_origen ON equivalenciasAsignaturas.idAsignaturaOrigen = asignaturas_origen.idAsignatura
+                                    LEFT JOIN 
+                                        asignaturas AS asignaturas_destino ON equivalenciasAsignaturas.idAsignaturaDestino = asignaturas_destino.idAsignatura
+                                    WHERE 
+                                        inscripciones.idUser = ?
+                                    AND inscripciones.estado = 'Activa'
+                                    GROUP BY 
+                                        inscripciones.idInscripcion
+                                    ORDER BY
+                                        inscripciones.idInscripcion ASC;''', (str(self.idUsuario)))
+        resultados = cursorBD.fetchall()
 
-    # Falta implementarlo con la base de datos
-    def inscripción(self):
+        if not resultados:
+            self.texto_consulta.insert("1.0", f"No hay inscripciones realizadas\n")
 
-        self.texto_consulta.destroy()
+        for resultado in resultados:
+            idInscripcion, idConvenio, gradoOrigen, centroOrigen, gradoDestino, centroDestino, asignaturasOrigen, asignaturasDestino = resultado
 
-        self.etiqueta_uni_O = customtkinter.CTkLabel(self, text="Universidad:", font=("Segoe UI", 14))
-        self.etiqueta_uni_O.pack(padx=20, pady=20)
-        self.etiqueta_uni_O.place(relx=0.05 , rely= 0.4)
+            self.texto_consulta.insert("1.0", f"ID Inscripción: {idInscripcion}\n")
+            self.texto_consulta.insert("2.0", f"ID Convenio: {idConvenio}\n")
+            self.texto_consulta.insert("3.0", f"Grado Origen: {gradoOrigen} - Centro: {centroOrigen}\n")
+            self.texto_consulta.insert("4.0", f"Grado Destino: {gradoDestino} - Centro: {centroDestino}\n")
+            self.texto_consulta.insert("5.0", f"Asignaturas Origen: {asignaturasOrigen}\n")
+            self.texto_consulta.insert("6.0", f"Asignaturas Destino: {asignaturasDestino}\n")
+            self.texto_consulta.insert("7.0", "----------\n")
 
-        self.entrada_uni_O = customtkinter.CTkEntry(self)
-        self.entrada_uni_O.pack(padx=20, pady=20)
-        self.entrada_uni_O.place(relx = 0.2, rely = 0.4)
+    def elegir_plan(self):
 
-        self.etiqueta_facultad_O = customtkinter.CTkLabel(self, text="Facultad:", font=("Segoe UI", 14))
-        self.etiqueta_facultad_O.pack(padx=20, pady=20)
-        self.etiqueta_facultad_O.place(relx=0.05 , rely= 0.5)
+        self.borrar_widgets()
 
-        self.entrada_facultad_O = customtkinter.CTkEntry(self)
-        self.entrada_facultad_O.pack(padx=20, pady=20)
-        self.entrada_facultad_O.place(relx = 0.2, rely = 0.5)
+        conexion = sqlite3.connect('BaseDeDatos.db')
+        cursorBD = conexion.cursor()
+        cursorBD.execute('SELECT idConvenio FROM convenios')
+        planes = cursorBD.fetchall()
 
-        self.etiqueta_grado_O = customtkinter.CTkLabel(self, text="Grado:", font=("Segoe UI", 14))
-        self.etiqueta_grado_O.pack(padx=20, pady=20)
-        self.etiqueta_grado_O.place(relx=0.05 , rely= 0.6)
+        if not planes:
+            self.etiqueta_plan = customtkinter.CTkLabel(self, text="No hay planes para elegir", font=("Segoe UI", 14))
+            self.etiqueta_plan.place(relx=0.05 , rely= 0.4)
+            self.vector_borrar_widgets.append(self.etiqueta_plan)
+        else:
+            planes = [str(row[0]) for row in planes]
+            conexion.close()
 
-        self.entrada_grado_O = customtkinter.CTkEntry(self)
-        self.entrada_grado_O.pack(padx=20, pady=20)
-        self.entrada_grado_O.place(relx = 0.2, rely = 0.6)
+            self.etiqueta_plan = customtkinter.CTkLabel(self, text="Elegir Planes:", font=("Segoe UI", 14))
+            self.etiqueta_plan.place(relx=0.05 , rely= 0.4)
+            self.vector_borrar_widgets.append(self.etiqueta_plan)
 
-        self.etiqueta_tiempo_O = customtkinter.CTkLabel(self, text="Estancia:", font=("Segoe UI", 14))
-        self.etiqueta_tiempo_O.pack(padx=20, pady=20)
-        self.etiqueta_tiempo_O.place(relx=0.05 , rely= 0.7)
+            self.opcion_plan = customtkinter.CTkOptionMenu(self, values=planes, command= lambda seleccion: self.obtener_datos_planes(seleccion))
+            self.opcion_plan.place(relx=0.15 , rely= 0.4)
+            self.vector_borrar_widgets.append(self.opcion_plan)
+    
+    def obtener_datos_planes(self, seleccion):
 
-        self.opcion_tiempo_O = customtkinter.CTkOptionMenu(self, values=["Cuatrimestre", "Curso Completo"], command=None)
-        self.opcion_tiempo_O.pack(padx=20, pady=20)
-        self.opcion_tiempo_O.place(relx = 0.2, rely = 0.7)
+        conexion = sqlite3.connect('BaseDeDatos.db')
+        cursorBD = conexion.cursor()
+        cursorBD.execute('''SELECT 
+                                grados_origen.nombre AS GradoOrigen,
+                                centros_origen.nombre AS CentroOrigen,
+                                grados_destino.nombre AS GradoDestino,
+                                centros_destino.nombre AS CentroDestino,
+                                convenios.curso AS Curso,
+                                convenios.duracion AS Duracion
+                            FROM 
+                                convenios
+                            JOIN grados AS grados_origen ON convenios.idGradoOrigen = grados_origen.idGrado
+                            JOIN centros AS centros_origen ON grados_origen.idCentro = centros_origen.idCentro
+                            JOIN grados AS grados_destino ON convenios.idGradoDestino = grados_destino.idGrado
+                            JOIN centros AS centros_destino ON grados_destino.idCentro = centros_destino.idCentro
+                            WHERE 
+                                convenios.idConvenio = ?;''', (seleccion))
+        resultado = cursorBD.fetchone()
+
+
+        self.etiqueta_grado_Origen = customtkinter.CTkLabel(self, text="Grado Origen: "+str(resultado[0]), font=("Segoe UI", 14))
+        self.etiqueta_grado_Origen.place(relx=0.05 , rely= 0.5)
+        self.vector_borrar_widgets.append(self.etiqueta_grado_Origen)
+
+        self.etiqueta_centro_Origen = customtkinter.CTkLabel(self, text="Centro Origen: "+str(resultado[1]), font=("Segoe UI", 14))
+        self.etiqueta_centro_Origen.place(relx=0.4 , rely= 0.5)
+        self.vector_borrar_widgets.append(self.etiqueta_centro_Origen)
+
+        self.etiqueta_grado_Destino = customtkinter.CTkLabel(self, text="Grado Origen: "+str(resultado[2]), font=("Segoe UI", 14))
+        self.etiqueta_grado_Destino.place(relx=0.05 , rely= 0.6)
+        self.vector_borrar_widgets.append(self.etiqueta_grado_Destino)
+
+        self.etiqueta_centro_Destino = customtkinter.CTkLabel(self, text="Centro Destino: "+str(resultado[3]), font=("Segoe UI", 14))
+        self.etiqueta_centro_Destino.place(relx=0.4 , rely= 0.6)
+        self.vector_borrar_widgets.append(self.etiqueta_centro_Destino)
+
+        self.etiqueta_curso = customtkinter.CTkLabel(self, text="Curso: "+str(resultado[4]), font=("Segoe UI", 14))
+        self.etiqueta_curso.place(relx=0.05 , rely= 0.7)
+        self.vector_borrar_widgets.append(self.etiqueta_curso)
+
+        self.etiqueta_duracion = customtkinter.CTkLabel(self, text="Duracion: "+str(resultado[5]), font=("Segoe UI", 14))
+        self.etiqueta_duracion.place(relx=0.05 , rely= 0.8)
+        self.vector_borrar_widgets.append(self.etiqueta_duracion)
+
+
+        self.boton_inscripcion = customtkinter.CTkButton(self, text="Inscribirse ", command= lambda: self.inscripcion_a_plan(seleccion), font=("Segoe UI", 14))
+        self.boton_inscripcion.place(relx=0.4 , rely= 0.8)
+        self.vector_borrar_widgets.append(self.boton_inscripcion)
+    
+    def inscripcion_a_plan(self, seleccion):
+        self.withdraw()
+        EspacioConsultarAsignaturas(self, seleccion)
+    
+    def anular_inscripción(self):
+
+        self.borrar_widgets()
+
+        conexion = sqlite3.connect('BaseDeDatos.db')
+        cursorBD = conexion.cursor()
+        cursorBD.execute('SELECT idInscripcion FROM inscripciones WHERE idUser=? AND estado=?', (self.idUsuario, 'Activa'))
+        inscripciones = cursorBD.fetchall()
+
+        if not inscripciones:
+            self.etiqueta_ins = customtkinter.CTkLabel(self, text="No hay inscripciones que elegir", font=("Segoe UI", 14))
+            self.etiqueta_ins.place(relx=0.05 , rely= 0.4)
+            self.vector_borrar_widgets.append(self.etiqueta_ins)
+        else:
+
+            inscripciones = [str(row[0]) for row in inscripciones]
+            conexion.close()
+
+            self.etiqueta_ins = customtkinter.CTkLabel(self, text="Elegir Inscripción:", font=("Segoe UI", 14))
+            self.etiqueta_ins.place(relx=0.05 , rely= 0.4)
+            self.vector_borrar_widgets.append(self.etiqueta_ins)
+
+            self.opcion_ins = customtkinter.CTkOptionMenu(self, values=inscripciones, command= lambda seleccion: self.obtener_datos_inscripcion(seleccion))
+            self.opcion_ins.place(relx=0.2 , rely= 0.4)
+            self.vector_borrar_widgets.append(self.opcion_ins)
+
+    def obtener_datos_inscripcion(self, seleccion):
+        
+        conexion = sqlite3.connect('BaseDeDatos.db')
+        cursorBD = conexion.cursor()
+
+        cursorBD.execute('SELECT idUser FROM usuarios WHERE usuario=?', (self.app.entrada_usuario.get()))
+        idUsuario = cursorBD.fetchone()
+
+        cursorBD.execute('''SELECT 
+                                grados_origen.nombre AS GradoOrigen,
+                                centros_origen.nombre AS CentroOrigen,
+                                grados_destino.nombre AS GradoDestino,
+                                centros_destino.nombre AS CentroDestino,
+                                convenios.curso AS Curso,
+                                convenios.duracion AS Duracion
+                            FROM 
+                                inscripciones
+                            JOIN convenios ON inscripciones.idConvenio = convenios.idConvenio
+                            JOIN grados AS grados_origen ON convenios.idGradoOrigen = grados_origen.idGrado
+                            JOIN centros AS centros_origen ON grados_origen.idCentro = centros_origen.idCentro
+                            JOIN grados AS grados_destino ON convenios.idGradoDestino = grados_destino.idGrado
+                            JOIN centros AS centros_destino ON grados_destino.idCentro = centros_destino.idCentro
+                            WHERE 
+                                inscripciones.idInscripcion = ? AND inscripciones.idUser = ?;''', (seleccion, idUsuario[0]))
+        resultado = cursorBD.fetchone()
+        conexion.close()
+
+        self.etiqueta_grado_Origen = customtkinter.CTkLabel(self, text="Grado Origen: "+str(resultado[0]), font=("Segoe UI", 14))
+        self.etiqueta_grado_Origen.place(relx=0.05 , rely= 0.5)
+        self.vector_borrar_widgets.append(self.etiqueta_grado_Origen)
+
+        self.etiqueta_centro_Origen = customtkinter.CTkLabel(self, text="Centro Origen: "+str(resultado[1]), font=("Segoe UI", 14))
+        self.etiqueta_centro_Origen.place(relx=0.4 , rely= 0.5)
+        self.vector_borrar_widgets.append(self.etiqueta_centro_Origen)
+
+        self.etiqueta_grado_Destino = customtkinter.CTkLabel(self, text="Grado Origen: "+str(resultado[2]), font=("Segoe UI", 14))
+        self.etiqueta_grado_Destino.place(relx=0.05 , rely= 0.6)
+        self.vector_borrar_widgets.append(self.etiqueta_grado_Destino)
+
+        self.etiqueta_centro_Destino = customtkinter.CTkLabel(self, text="Centro Destino: "+str(resultado[3]), font=("Segoe UI", 14))
+        self.etiqueta_centro_Destino.place(relx=0.4 , rely= 0.6)
+        self.vector_borrar_widgets.append(self.etiqueta_centro_Destino)
+
+        self.etiqueta_curso = customtkinter.CTkLabel(self, text="Curso: "+str(resultado[4]), font=("Segoe UI", 14))
+        self.etiqueta_curso.place(relx=0.05 , rely= 0.7)
+        self.vector_borrar_widgets.append(self.etiqueta_curso)
+
+        self.etiqueta_duracion = customtkinter.CTkLabel(self, text="Duracion: "+str(resultado[5]), font=("Segoe UI", 14))
+        self.etiqueta_duracion.place(relx=0.05 , rely= 0.8)
+        self.vector_borrar_widgets.append(self.etiqueta_duracion)
+
+        self.etiqueta_duracion = customtkinter.CTkButton(self, text="Anular inscripción ", command=lambda: self.inscripcion_anulada(seleccion), font=("Segoe UI", 14))
+        self.etiqueta_duracion.place(relx=0.4 , rely= 0.8)
+        self.vector_borrar_widgets.append(self.etiqueta_duracion)
+
+    def inscripcion_anulada(self, seleccion):
+
+        conexion = sqlite3.connect('BaseDeDatos.db')
+        cursorBD = conexion.cursor()
+
+        cursorBD.execute('SELECT * FROM inscripciones WHERE idInscripcion = ? AND idUser = ? AND estado = ?', (seleccion, self.idUsuario, "Activa"))
+        resultado = cursorBD.fetchone()  # Devuelve la primera fila si existe, o None si no existe
+
+        if resultado:
+            cursorBD.execute('UPDATE inscripciones SET estado = ? WHERE idInscripcion = ?', ("Anulada", seleccion))
+            conexion.commit()
+            messagebox.showinfo("Anulación correcta", "Se ha anulado la inscripción correctamente", parent=self)
+        else:
+            messagebox.showerror("Error al anular", "No quedan inscripciones para anular", parent=self)
+            conexion.close()
+        conexion.close()
+        
+
+
+class EspacioConsultarAsignaturas(customtkinter.CTkToplevel):
+    def __init__(self, EspacioEstudiante, seleccion):
+        super().__init__(EspacioEstudiante)
+        self.EspacioEstudiante = EspacioEstudiante
+        self.seleccion = seleccion
+        self.title("Equivalencias de Asignaturas")
+        self.geometry("1000x500")
+        customtkinter.set_appearance_mode("Dark")
+        customtkinter.set_default_color_theme("dark-blue")
+        self.resizable(False, False)
+
+        # Mensaje 
+        self.etiqueta = customtkinter.CTkLabel(self, text="Las asignaturas que se convalidan son las siguientes:", font=("Segoe UI", 20))
+        self.etiqueta.pack(padx=20, pady=20)
+
+        conexion = sqlite3.connect("BaseDeDatos.db")
+        cursor = conexion.cursor()
+
+        cursor.execute('SELECT  duracion FROM convenios WHERE idConvenio = ?', (seleccion))
+        duracion = cursor.fetchone()
+
+        cursor.execute('''SELECT 
+                            asignaturas_origen.nombre AS AsignaturaOrigen,
+                            asignaturas_destino.nombre AS AsignaturaDestino
+                        FROM 
+                            equivalenciasAsignaturas
+                        JOIN asignaturas AS asignaturas_origen ON equivalenciasAsignaturas.idAsignaturaOrigen = asignaturas_origen.idAsignatura
+                        JOIN asignaturas AS asignaturas_destino ON equivalenciasAsignaturas.idAsignaturaDestino = asignaturas_destino.idAsignatura
+                        WHERE 
+                            equivalenciasAsignaturas.idConvenio = ?;''', (seleccion,))
+        resultados = cursor.fetchall()
+        conexion.close()
+
+        if duracion == "curso_completo":
+            self.geometry("1000x700")
+
+        if not resultados:
+            self.frame_resultados = customtkinter.CTkLabel(self, text="No se han encontrado asignaturas equivalentes",font=("Segoe UI", 16)).pack()
+
+        # Mostrar las asignaturas
+        cont=0
+        for origen, destino in resultados:
+            cont=cont+1
+            texto = f"Origen: {origen} --------------- Asignatura {cont} --------------- Destino: {destino}"
+            self.frame_resultados = customtkinter.CTkLabel(self, text=texto,font=("Segoe UI", 16)).pack(padx=10, pady=10)
+
+        self.boton_confirmar = customtkinter.CTkButton(self, text="Confirmar inscripción", command=lambda: self.confirmar_inscripcion(seleccion), font=("Segoe UI", 12),)
+        self.boton_confirmar.pack(padx=40, pady=40)
+        
+        self.boton_atras = customtkinter.CTkButton(self, text="Volver atrás", command= lambda: self.volver_atras(), font=("Segoe UI", 12),)
+        self.boton_atras.pack()
+    
+    def volver_atras(self):
+
+        self.destroy()
+        self.EspacioEstudiante.deiconify()
+
+    def confirmar_inscripcion(self, seleccion):
+
+        conexion = sqlite3.connect("BaseDeDatos.db")
+        cursor = conexion.cursor()
+
+        cursor.execute('SELECT count(idInscripcion) FROM inscripciones')
+        resultado=cursor.fetchone()
+        cont = resultado[0]
+        cont=cont+1
+
+        cursor.execute('SELECT * FROM inscripciones WHERE idUser=? AND idConvenio=?', (self.EspacioEstudiante.idUsuario, seleccion))
+        resultado=cursor.fetchone()
+
+        if resultado:
+            messagebox.showerror("Error al inscribirse", "Ya existe una inscripción a ese plan o está anulada")
+            conexion.close()
+        else:
+            cursor.execute('''INSERT INTO inscripciones(idInscripcion, idUser, idConvenio, estado)
+                            VALUES(?, ?, ?, ?)''', (cont, self.EspacioEstudiante.idUsuario, seleccion, "Activa"))
+            conexion.commit()
+            messagebox.showinfo("Inscripción registrada", "Se ha almacenado la inscripción correctamente")
+            conexion.close()
+            self.volver_atras()
+
 
 # La clase EspacioAdmin hereda todos los atributos y funciones de la clase customtkinter.CTkToplevel (clase base para la ventana secundaria). 
 # Esto significa que EspacioAdmin es una ventana secundaria de customtkinter.

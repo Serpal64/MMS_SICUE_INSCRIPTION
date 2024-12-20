@@ -25,9 +25,9 @@ class App(customtkinter.CTk):
 
         # Configuración del saludo inicial
         self.etiqueta_saludo = customtkinter.CTkLabel(
-            master=self, text="Bienvenid@ al Programa MMS", fg_color="transparent", font=("Segoe UI", 14)
+            master=self, text="Bienvenid@ al Programa MMS", fg_color="transparent", font=("Segoe UI", 20)
         )
-        self.etiqueta_saludo.pack(pady=5, padx=5)
+        self.etiqueta_saludo.pack(pady=20, padx=20)
 
         # Entrada para usuario
         self.etiqueta_usuario = customtkinter.CTkLabel(master=self, text="Usuario:", fg_color="transparent", font=("Segoe UI", 14))
@@ -39,9 +39,9 @@ class App(customtkinter.CTk):
         self.etiqueta_contrasena = customtkinter.CTkLabel(
             master=self, text="Contraseña:", fg_color="transparent", font=("Segoe UI", 14)
         )
-        self.etiqueta_contrasena.pack(pady=5)
+        self.etiqueta_contrasena.pack(pady=10)
         self.entrada_contrasena = customtkinter.CTkEntry(master=self, show="*")
-        self.entrada_contrasena.pack(pady=5)
+        self.entrada_contrasena.pack(pady=10)
 
         # Botón para iniciar sesión 
         self.boton_iniciar = customtkinter.CTkButton(
