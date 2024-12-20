@@ -264,7 +264,9 @@ class EspacioEstudiante(customtkinter.CTkToplevel):
         conexion = sqlite3.connect('BaseDeDatos.db')
         cursorBD = conexion.cursor()
 
-        cursorBD.execute('SELECT idUser FROM usuarios WHERE usuario=?', (self.app.entrada_usuario.get()))
+        print(self.app.entrada_usuario.get())
+
+        cursorBD.execute('SELECT idUser FROM usuarios WHERE usuario=?', (str(self.app.entrada_usuario.get()),))
         idUsuario = cursorBD.fetchone()
 
         cursorBD.execute('''SELECT 
